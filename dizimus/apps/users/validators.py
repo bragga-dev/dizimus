@@ -6,6 +6,8 @@ from django.core.exceptions import ValidationError
 from brazilcep import get_address_from_cep, WebService, exceptions as brazil_exc
 import re
 import logging
+from validate_docbr import CPF, CNPJ
+
 
 logger = logging.getLogger(__name__)
 
@@ -158,3 +160,19 @@ def validar_cep(value: str) -> None:
             _("Erro ao validar o CEP. Tente novamente."),
             code="cep_erro_inesperado",
         )
+    
+# =========================================================
+# VALIDAÇÕES (CPF, CNPJ, etc.)
+# =========================================================
+
+
+_cpf  = CPF()
+_cnpj = CNPJ()
+
+def validate_cpf(value):
+    if not _cpf.validate(value):
+        raise ValidationError(_('CPF inválido.'))
+
+def validate_cnpj(value):
+    if not _cnpj.validate(value):
+        raise ValidationError(_('CNPJ inválido.'))

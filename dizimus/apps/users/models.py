@@ -8,18 +8,44 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
-from validate_docbr import CPF, CNPJ
 from phonenumber_field.modelfields import PhoneNumberField
-from users.validators import validate_image_file, validar_cep
+from users.validators import validate_image_file, validar_cep, validate_cpf, validate_cnpj
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Callables de upload_to
+# Geram caminhos organizados no bucket, ex: photos/uuid/nome-do-arquivo.jpg
+# Isso evita colisões e facilita gerenciar/remover arquivos por usuário.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def user_photo_path(instance, filename):
+    ext = filename.rsplit(".", 1)[-1].lower()
+    return f"photos/{instance.id}/photo.{ext}"
+
+
+def church_banner_path(instance, filename):
+    ext = filename.rsplit(".", 1)[-1].lower()
+    return f"church_banners/{instance.user_id}/banner.{ext}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Imagens padrão
+# Com MinIO/S3 o campo `default` é um caminho relativo dentro do bucket.
+# Faça o upload manual desses arquivos para o bucket dizimus-media:
+#   mc cp default/user_img.jpg local/dizimus-media/default/user_img.jpg
+#   mc cp default/banner.jpg   local/dizimus-media/default/banner.jpg
+# ─────────────────────────────────────────────────────────────────────────────
+
+DEFAULT_USER_PHOTO  = "default/user_img.jpg"
+DEFAULT_CHURCH_BANNER = "default/banner.jpg"
 
 
 class UserManager(BaseUserManager):
     def _create_user(self, email, password, is_staff, is_superuser, **extra_fields):
-        now = timezone.now()
         if not email:
-            raise ValueError(_('O endereço de email deve ser fornecido.'))
+            raise ValueError(_('O e-mail é obrigatório.'))
         email = self.normalize_email(email)
+        now = timezone.now()
         user = self.model(
             email=email,
             is_staff=is_staff,
@@ -27,67 +53,83 @@ class UserManager(BaseUserManager):
             is_superuser=is_superuser,
             last_login=now,
             date_joined=now,
-            **extra_fields
+            **extra_fields,
         )
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_user(self, username, email=None, password=None, **extra_fields):
-        return self._create_user(username, email, password, False, False, **extra_fields)
+    def create_user(self, email, password=None, **extra_fields):
+        return self._create_user(email, password, False, False, **extra_fields)
 
-    def create_superuser(self, username, email, password, **extra_fields):
-        user = self._create_user(username, email, password, True, True, **extra_fields)
+    def create_superuser(self, email, password, **extra_fields):
+        user = self._create_user(email, password, True, True, **extra_fields)
         user.is_active = True
         user.save(using=self._db)
         return user
-    
+
 
 class User(AbstractBaseUser, PermissionsMixin):
     class UserRole(models.TextChoices):
-
-        ADMIN = "admin", "Admin"
         MEMBER = "member", "Membro"
         CHURCH = "church", "Igreja"
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  
-    username = models.CharField( _('username'), max_length=15, unique=True,  help_text=_('Obrigatório. 15 caracteres ou menos. Letras, dígitos e @/./+/-/_ apenas.'), validators=[validators.RegexValidator(re.compile(r'^[\w.@+-]+$'), _('Entre com um nome de usuário válido.'), _('inválido'))],)
-    role = models.CharField(_("Tipo de usuário"),  max_length=20, choices=UserRole.choices, default=UserRole.MEMBER, help_text=_('Selecione o tipo de usuário.'))
-    first_name = models.CharField(_('first name'), max_length=30)
-    last_name = models.CharField(_('last name'), max_length=30)
-    email = models.EmailField(_('email address'), max_length=255, unique=True)
-    photo = models.ImageField(upload_to="photos/", default="default/user_img.jpg", blank=True, null=True, validators=[validate_image_file], help_text=_('Formato de arquivo: jpg, jpeg ou png.'))  
-    phone = PhoneNumberField(region="BR", unique=True, null=True, blank=True, help_text='Digite um número com DDD. Ex: +55 11 91234-5678')
-    slug = models.SlugField(max_length=255, unique=True, editable=False)
-    is_staff = models.BooleanField(_('Staff'), default=False,  help_text=_('Designates whether the user can log into this admin site.'))
-    is_active = models.BooleanField(_('Ativo?'), default=True,  help_text=_('Indica se este usuário está ativo ou não.'))
-    date_joined = models.DateTimeField(_('Data de admissão'), default=timezone.now)
-    is_trusty = models.BooleanField(_('trusty'), default=False, help_text=_('Indica se este usuário é confiável ou não.'))
-    created_at = models.DateTimeField(_('Data de criação'), auto_now_add=True) 
-    updated_at = models.DateTimeField(_('Última atualização'), auto_now=True)  
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    username   = models.CharField(
+        _('username'), max_length=15, unique=True,
+        help_text=_('Obrigatório. 15 caracteres ou menos. Letras, dígitos e @/./+/-/_ apenas.'),
+        validators=[validators.RegexValidator(
+            re.compile(r'^[\w.@+-]+$'),
+            _('Entre com um nome de usuário válido.'),
+            _('inválido'),
+        )],
+    )
+    role       = models.CharField(
+        _("Tipo de usuário"), max_length=20,
+        choices=UserRole.choices, default=UserRole.MEMBER,
+    )
+    first_name = models.CharField(_('Primeiro nome'), max_length=30)
+    last_name  = models.CharField(_('Sobrenome'), max_length=30)
+    email      = models.EmailField(_('E-mail'), max_length=255, unique=True)
 
-    USERNAME_FIELD = 'email'
+    # ── Foto ─────────────────────────────────────────────────────────────────
+    # upload_to agora é um callable → gera: photos/<uuid>/photo.jpg no MinIO.
+    # default aponta para um arquivo que deve existir no bucket dizimus-media.
+    photo = models.ImageField(
+        upload_to=user_photo_path,
+        default=DEFAULT_USER_PHOTO,
+        blank=True,
+        null=True,
+        validators=[validate_image_file],
+        help_text=_('Formatos aceitos: jpg, jpeg ou png. Máx: 5MB.'),
+    )
+
+    phone       = PhoneNumberField(region="BR", unique=True, null=True, blank=True)
+    slug        = models.SlugField(max_length=255, unique=True, editable=False)
+    is_staff    = models.BooleanField(_('Staff'), default=False)
+    is_active   = models.BooleanField(_('Ativo?'), default=True)
+    is_trusty   = models.BooleanField(_('Confiável?'), default=False)
+    date_joined = models.DateTimeField(_('Data de admissão'), default=timezone.now)
+    created_at  = models.DateTimeField(_('Criado em'), auto_now_add=True)
+    updated_at  = models.DateTimeField(_('Atualizado em'), auto_now=True)
+
+    USERNAME_FIELD  = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     objects = UserManager()
 
     class Meta:
-        verbose_name = _('Usuário')
+        verbose_name        = _('Usuário')
         verbose_name_plural = _('Usuários')
 
     def get_full_name(self):
-        full_name = f'{self.first_name} {self.last_name}'
-        return full_name.strip()
+        return f'{self.first_name} {self.last_name}'.strip()
 
     def get_short_name(self):
         return self.first_name
 
     def email_user(self, subject, message, from_email=None):
         send_mail(subject, message, from_email, [self.email])
-    
-    @property
-    def is_admin(self):
-        return self.role == self.UserRole.ADMIN
 
     @property
     def is_member(self):
@@ -96,154 +138,216 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_church(self):
         return self.role == self.UserRole.CHURCH
-    
-    def has_name_changed(self):
-        if not self.id:
+
+    # ── URL da foto (com fallback seguro para o MinIO) ────────────────────────
+    @property
+    def photo_url(self) -> str:
+        """
+        Retorna a URL da foto no MinIO.
+        Nunca lança erro: se a foto não existir no bucket, devolve a URL do padrão.
+        Use {{ user.photo_url }} nos templates em vez de {{ user.photo.url }}.
+        """
+        if self.photo and self.photo.name != DEFAULT_USER_PHOTO:
+            try:
+                return self.photo.url
+            except Exception:
+                pass
+        # Monta URL pública da imagem padrão diretamente
+        from django.conf import settings
+        return f"{settings.MEDIA_URL}{DEFAULT_USER_PHOTO}"
+
+    def has_name_changed(self) -> bool:
+        if not self.pk or self._state.adding:
             return False
-            
-        old_user = User.objects.filter(id=self.id).first()
-        if not old_user:
+        old = User.objects.filter(pk=self.pk).only('first_name', 'last_name').first()
+        if not old:
             return True
-            
-        return (old_user.first_name != self.first_name or old_user.last_name != self.last_name)
-    
+        return old.first_name != self.first_name or old.last_name != self.last_name
+
     def __str__(self):
-        return self.email 
-          
+        return self.email
+
     def save(self, *args, **kwargs):
         self.full_clean()
-        if (not self.slug  or self._state.adding  or self.has_name_changed()):
-            base_slug = (slugify(self.get_full_name())  or str(self.id))
+
+        # Slug: regenera ao criar ou ao trocar o nome
+        if not self.slug or self._state.adding or self.has_name_changed():
+            base_slug   = slugify(self.get_full_name()) or str(self.id)
             unique_slug = base_slug
             num = 1
-
-            while (User.objects .filter(slug=unique_slug) .exclude(pk=self.pk).exists()):
-                unique_slug = (f'{base_slug}-{num}')
+            while User.objects.filter(slug=unique_slug).exclude(pk=self.pk).exists():
+                unique_slug = f'{base_slug}-{num}'
                 num += 1
             self.slug = unique_slug
+
+        # Garante que a foto nunca fique vazia no banco
         if not self.photo:
-            self.photo = (self._meta .get_field("photo").default)
+            self.photo = DEFAULT_USER_PHOTO
 
         super().save(*args, **kwargs)
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+
 class BaseAddress(models.Model):
-        class States(models.TextChoices):
-            AC = "AC", "Acre"
-            AL = "AL", "Alagoas"
-            AP = "AP", "Amapá"
-            AM = "AM", "Amazonas"
-            BA = "BA", "Bahia"
-            CE = "CE", "Ceará"
-            DF = "DF", "Distrito Federal"
-            ES = "ES", "Espírito Santo"
-            GO = "GO", "Goiás"
-            MA = "MA", "Maranhão"
-            MT = "MT", "Mato Grosso"
-            MS = "MS", "Mato Grosso do Sul"
-            MG = "MG", "Minas Gerais"
-            PA = "PA", "Pará"
-            PB = "PB", "Paraíba"
-            PR = "PR", "Paraná"
-            PE = "PE", "Pernambuco"
-            PI = "PI", "Piauí"
-            RJ = "RJ", "Rio de Janeiro"
-            RN = "RN", "Rio Grande do Norte"
-            RS = "RS", "Rio Grande do Sul"
-            RO = "RO", "Rondônia"
-            RR = "RR", "Roraima"
-            SC = "SC", "Santa Catarina"
-            SP = "SP", "São Paulo"
-            SE = "SE", "Sergipe"
-            TO = "TO", "Tocantins"
+    class States(models.TextChoices):
+        AC = "AC", "Acre"
+        AL = "AL", "Alagoas"
+        AP = "AP", "Amapá"
+        AM = "AM", "Amazonas"
+        BA = "BA", "Bahia"
+        CE = "CE", "Ceará"
+        DF = "DF", "Distrito Federal"
+        ES = "ES", "Espírito Santo"
+        GO = "GO", "Goiás"
+        MA = "MA", "Maranhão"
+        MT = "MT", "Mato Grosso"
+        MS = "MS", "Mato Grosso do Sul"
+        MG = "MG", "Minas Gerais"
+        PA = "PA", "Pará"
+        PB = "PB", "Paraíba"
+        PR = "PR", "Paraná"
+        PE = "PE", "Pernambuco"
+        PI = "PI", "Piauí"
+        RJ = "RJ", "Rio de Janeiro"
+        RN = "RN", "Rio Grande do Norte"
+        RS = "RS", "Rio Grande do Sul"
+        RO = "RO", "Rondônia"
+        RR = "RR", "Roraima"
+        SC = "SC", "Santa Catarina"
+        SP = "SP", "São Paulo"
+        SE = "SE", "Sergipe"
+        TO = "TO", "Tocantins"
+
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    cep        = models.CharField(_('CEP'), max_length=9, validators=[validar_cep])
+    road       = models.CharField(_('Rua'), max_length=255)
+    number     = models.CharField(_('N°'), max_length=10)
+    district   = models.CharField(_('Bairro'), max_length=100)
+    city       = models.CharField(_('Cidade'), max_length=100)
+    state      = models.CharField(_('Estado'), max_length=2, choices=States.choices)
+    country    = models.CharField(_('País'), max_length=100, default="Brasil")
+    complement = models.CharField(_('Complemento'), max_length=255, null=True, blank=True)
+    principal  = models.BooleanField(_('Endereço Padrão?'), default=True)
+    slug       = models.SlugField(max_length=255, unique=True, editable=False)
+
+    class Meta:
+        verbose_name        = "Endereço"
+        verbose_name_plural = "Endereços"
+        abstract = True
+
+    def __str__(self):
+        return f"{self.road}, {self.number} - {self.city}/{self.state}"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(
+                f"{self.road}-{self.number}-{self.district}"
+                f"-{self.city}-{self.state}-{str(self.id)[:8]}"
+            )
+            unique_slug = base_slug
+            num = 1
+            while self.__class__.objects.filter(slug=unique_slug).exclude(pk=self.pk).exists():
+                unique_slug = f'{base_slug}-{num}'
+                num += 1
+            self.slug = unique_slug
+        super().save(*args, **kwargs)
 
 
-        id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-        cep = models.CharField(_('CEP'), max_length=9, null=False, blank=False, validators=[validar_cep])  
-        road = models.CharField(_('Rua'), max_length=255, null=False, blank=False)
-        number = models.CharField(_('N°'), max_length=10, null=False, blank=False)
-        district = models.CharField(_('Bairro'), max_length=100, null=False, blank=False)
-        city = models.CharField(_('Cidade'), max_length=100, null=False, blank=False)
-        state = models.CharField(_('Estado'),  max_length=2, choices=States.choices, null=False,  blank=False)
-        country = models.CharField(_('País'), max_length=100, default="Brasil")
-        principal = models.BooleanField(_('Endereço Padrão?'), default=True)
-        slug = models.SlugField(max_length=255, unique=True, editable=False)
-        complement = models.CharField(_('Complemento'), max_length=255, null=True, blank=True)
-
-        def __str__(self):
-            return f"{self.road}, {self.number} - {self.city}/{self.state}"
-    
-        
-        class Meta:
-            verbose_name = "Endereço"
-            verbose_name_plural =  "Endereços"
-            abstract = True
-            
-        def save(self, *args, **kwargs):
-            if not self.slug:
-                base_slug = slugify(f"{self.road}-{self.number}-{self.district}-{self.city}-{self.state}-{self.country}")
-                unique_slug = base_slug
-                num = 1
-                while self.__class__.objects.filter(slug=unique_slug).exists():
-                    unique_slug = f'{base_slug}-{num}'
-                    num += 1
-                self.slug = unique_slug
-            super().save(*args, **kwargs)
-
+# ─────────────────────────────────────────────────────────────────────────────
 
 class Church(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="church")
-    is_verified = models.BooleanField(_('Autorizado?'), default=False, help_text="Indica se a igreja foi verificada pela plataforma.")
-    cnpj = models.CharField(max_length=18, unique=True, null=True, blank=True)
-    banner = models.ImageField(upload_to="church_banners/", default="default/banner.jpg", blank=True, null=True, validators=[validate_image_file], help_text=_('Formato de arquivo: jpg, jpeg ou png.'))
-   
+    user        = models.OneToOneField(User, on_delete=models.CASCADE, related_name="church")
+    is_verified = models.BooleanField(_('Autorizado?'), default=False)
+    cnpj        = models.CharField(
+        max_length=18, unique=True, null=True, blank=True,
+        validators=[validate_cnpj],
+    )
+
+    # ── Banner ────────────────────────────────────────────────────────────────
+    # upload_to callable → church_banners/<user_uuid>/banner.jpg no MinIO.
+    banner = models.ImageField(
+        upload_to=church_banner_path,
+        default=DEFAULT_CHURCH_BANNER,
+        blank=True,
+        null=True,
+        validators=[validate_image_file],
+        help_text=_('Formatos aceitos: jpg, jpeg ou png. Máx: 5MB.'),
+    )
+
     class Meta:
-        verbose_name = "Igreja"
+        verbose_name        = "Igreja"
         verbose_name_plural = "Igrejas"
 
     def __str__(self):
         return self.user.get_full_name()
-    
-    def validate_cnpj(value: str) -> None:
-        if value and not CNPJ().validate(value):
-            raise ValidationError(_('CNPJ inválido.'), code='cnpj_invalido')
 
+    @property
+    def banner_url(self) -> str:
+        """
+        Retorna a URL do banner no MinIO com fallback seguro.
+        Use {{ church.banner_url }} nos templates.
+        """
+        if self.banner and self.banner.name != DEFAULT_CHURCH_BANNER:
+            try:
+                return self.banner.url
+            except Exception:
+                pass
+        from django.conf import settings
+        return f"{settings.MEDIA_URL}{DEFAULT_CHURCH_BANNER}"
 
-    def save(self, *args, **kwargs):      
+    def save(self, *args, **kwargs):
         if not self.banner:
-                self.banner.name = self._meta.get_field("banner").default
+            self.banner = DEFAULT_CHURCH_BANNER
         super().save(*args, **kwargs)
 
 
 class ChurchAddress(BaseAddress):
     church = models.ForeignKey(Church, on_delete=models.CASCADE, related_name='addresses')
+
     def save(self, *args, **kwargs):
         if self.principal:
-            ChurchAddress.objects.filter(church=self.church, principal=True).exclude(pk=self.pk).update(principal=False)
+            ChurchAddress.objects.filter(
+                church=self.church, principal=True
+            ).exclude(pk=self.pk).update(principal=False)
         super().save(*args, **kwargs)
-    
+
+
 class Member(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="member")
-    cpf = models.CharField(max_length=14, unique=True, null=True, blank=True)
-    date_of_birth = models.DateField(_('Data de nascimento'), null=True, blank=True, help_text=_('Formato: DD/MM/AAAA.'))
-    church = models.ForeignKey(Church, on_delete=models.PROTECT, null=True, blank=True, related_name='members')
+    user          = models.OneToOneField(User, on_delete=models.CASCADE, related_name="member")
+    cpf           = models.CharField(
+        max_length=14, unique=True, null=True, blank=True,
+        validators=[validate_cpf],
+    )
+    date_of_birth = models.DateField(
+        _('Data de nascimento'), null=True, blank=True,
+        help_text=_('Formato: DD/MM/AAAA.'),
+    )
+    church = models.ForeignKey(
+        Church, on_delete=models.PROTECT,
+        null=True, blank=True, related_name='members',
+    )
 
-    def validate_cpf(value: str) -> None:
-        if value and not CPF(repeated_digits=True).validate(value):
-            raise ValidationError(_('CPF inválido.'), code='cpf_invalido')
-
-    def clean(self):        
+    def clean(self):
         if self.date_of_birth and self.date_of_birth > timezone.localdate():
-            raise ValidationError({'date_of_birth': 'Data de nascimento não pode ser maior que a data atual.'})
+            raise ValidationError(
+                {'date_of_birth': _('Data de nascimento não pode ser no futuro.')}
+            )
 
     class Meta:
-        verbose_name = "Membro"
+        verbose_name        = "Membro"
         verbose_name_plural = "Membros"
+
+    def __str__(self):
+        return self.user.get_full_name()
+
 
 class MemberAddress(BaseAddress):
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='addresses')
 
     def save(self, *args, **kwargs):
         if self.principal:
-            MemberAddress.objects.filter(member=self.member, principal=True).exclude(pk=self.pk).update(principal=False)
+            MemberAddress.objects.filter(
+                member=self.member, principal=True
+            ).exclude(pk=self.pk).update(principal=False)
         super().save(*args, **kwargs)
-    

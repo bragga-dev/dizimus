@@ -316,3 +316,45 @@ DEFAULT_REPLY_TO_EMAIL = env("DEFAULT_REPLY_TO_EMAIL", default=DEFAULT_FROM_EMAI
 # =========================================================
 
 NINJA_SIMPLE_JWT = {"USE_STATELESS_AUTH": False,}
+
+
+
+# =========================================================
+# STORAGES — MinIO (S3-compatible)
+# =========================================================
+
+MINIO_ENDPOINT    = env("MINIO_ENDPOINT",       default="localhost:9000")
+MINIO_ACCESS_KEY  = env("MINIO_ACCESS_KEY",     default="minioadmin")
+MINIO_SECRET_KEY  = env("MINIO_SECRET_KEY",     default="minioadmin")
+MINIO_BUCKET_NAME = env("MINIO_BUCKET_NAME",    default="dizimus")
+MINIO_USE_HTTPS   = env.bool("MINIO_USE_HTTPS", default=False)
+
+_minio_scheme = "https" if MINIO_USE_HTTPS else "http"
+
+STORAGES = {
+    "default": {
+        # Arquivos de upload (media): fotos, banners, etc.
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "access_key":           MINIO_ACCESS_KEY,
+            "secret_key":           MINIO_SECRET_KEY,
+            "bucket_name":          MINIO_BUCKET_NAME,
+            "endpoint_url":         f"{_minio_scheme}://{MINIO_ENDPOINT}",
+            "region_name":          "us-east-1",       # MinIO ignora, mas boto3 exige
+            "file_overwrite":       False,              # evita sobrescrever arquivos com mesmo nome
+            "default_acl":          None,               # MinIO gerencia ACL internamente
+            "use_ssl":              MINIO_USE_HTTPS,
+            "verify":               MINIO_USE_HTTPS,    # False em dev (sem cert válido)
+            "object_parameters": {
+                "CacheControl": "max-age=86400",        # cache de 1 dia nos browsers
+            },
+        },
+    },
+    "staticfiles": {
+        # Mantém estáticos locais em dev; troque em prod se quiser no MinIO também
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+# Mantém MEDIA_URL apontando para o MinIO
+MEDIA_URL = f"{_minio_scheme}://{MINIO_ENDPOINT}/{MINIO_BUCKET_NAME}/"
