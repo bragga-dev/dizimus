@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from brazilcep import get_address_from_cep, WebService, exceptions as brazil_exc
 import re
 import logging
+from ninja import UploadedFile
 from validate_docbr import CPF, CNPJ
 
 
@@ -25,7 +26,7 @@ MAX_HEIGHT = 4000
 
 
 def validate_image_file(value):
-    if not value:
+    if not isinstance(value, UploadedFile):
         return
 
     # 1. Valida extensão do arquivo antes de abrir

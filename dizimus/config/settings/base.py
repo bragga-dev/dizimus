@@ -59,16 +59,15 @@ THIRD_PARTY_APPS = [
 # =========================================================
 
 LOCAL_APPS = [
-    # "apps.core",
-    # "apps.users",
-    # "apps.churches",
-    # "apps.members",
-    # "apps.contributions",
-    # "apps.payments",
-    # "apps.receipts",
-    # "apps.reports",
-    # "apps.dashboards",
-    # "apps.webhooks",
+    "dizimus.apps.users",
+    # "dizimus.apps.churches",
+    # "dizimus.apps.members",
+    # "dizimus.apps.contributions",
+    # "dizimus.apps.payments",
+    # "dizimus.apps.receipts",
+    # "dizimus.apps.reports",
+    # "dizimus.apps.dashboards",
+    # "dizimus.apps.webhooks",
 ]
 
 
@@ -102,7 +101,7 @@ MIDDLEWARE = [
 # URLS
 # =========================================================
 
-ROOT_URLCONF = "config.urls"
+ROOT_URLCONF = "dizimus.config.urls"
 
 
 # =========================================================
@@ -131,9 +130,9 @@ TEMPLATES = [
 # WSGI / ASGI
 # =========================================================
 
-WSGI_APPLICATION = "config.wsgi.application"
+WSGI_APPLICATION = "dizimus.config.wsgi.application"
 
-ASGI_APPLICATION = "config.asgi.application"
+ASGI_APPLICATION = "dizimus.config.asgi.application"
 
 
 # =========================================================
@@ -318,7 +317,11 @@ DEFAULT_REPLY_TO_EMAIL = env("DEFAULT_REPLY_TO_EMAIL", default=DEFAULT_FROM_EMAI
 NINJA_SIMPLE_JWT = {"USE_STATELESS_AUTH": False,}
 
 
+# =========================================================
+# AUTH
+# =========================================================
 
+AUTH_USER_MODEL = "users.User"
 # =========================================================
 # STORAGES — MinIO (S3-compatible)
 # =========================================================

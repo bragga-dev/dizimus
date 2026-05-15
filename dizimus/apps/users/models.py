@@ -9,7 +9,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseU
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from phonenumber_field.modelfields import PhoneNumberField
-from users.validators import validate_image_file, validar_cep, validate_cpf, validate_cnpj
+from .validators import validate_image_file, validar_cep, validate_cpf, validate_cnpj
 
 
 # ─────────────────────────────────────────────────────────────────────────────

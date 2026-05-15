@@ -7,10 +7,7 @@ from .base import *
 
 DEBUG = True
 
-SECRET_KEY = env(
-    "SECRET_KEY",
-    default="dev-secret-key"
-)
+SECRET_KEY = env("SECRET_KEY", default="dev-secret-key")
 
 ALLOWED_HOSTS = [
     "*",
@@ -20,17 +17,12 @@ ALLOWED_HOSTS = [
 # =========================================================
 # DATABASE
 # =========================================================
-
 DATABASES = {
     "default": env.db(
         "DATABASE_URL",
-        default=(
-            "postgres://postgres:"
-            "123456@localhost:5432/dizimus"
-        )
+        default="postgres://postgres@localhost:5432/dizimus",
     )
 }
-
 
 # =========================================================
 # STATIC / MEDIA
@@ -47,21 +39,7 @@ MEDIA_URL = "/media/"
 # EMAIL
 # =========================================================
 
-EMAIL_BACKEND = (
-    "django.core.mail.backends.console.EmailBackend"
-)
-
-# SMTP REAL (descomentar quando precisar)
-#
-# EMAIL_BACKEND = (
-#     "django.core.mail.backends.smtp.EmailBackend"
-# )
-#
-# EMAIL_HOST = env("EMAIL_HOST")
-# EMAIL_PORT = env.int("EMAIL_PORT", default=587)
-# EMAIL_HOST_USER = env("EMAIL_HOST_USER")
-# EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
-# EMAIL_USE_TLS = True
+EMAIL_BACKEND = ("django.core.mail.backends.console.EmailBackend")
 
 
 # =========================================================
@@ -82,9 +60,7 @@ CACHES = {
 # SESSION
 # =========================================================
 
-SESSION_ENGINE = (
-    "django.contrib.sessions.backends.db"
-)
+SESSION_ENGINE = ("django.contrib.sessions.backends.db")
 
 
 # =========================================================
@@ -128,6 +104,4 @@ CELERY_TASK_EAGER_PROPAGATES = True
 # DEBUG TOOLBAR
 # =========================================================
 
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
+INTERNAL_IPS = ["127.0.0.1",]

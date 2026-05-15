@@ -1,21 +1,16 @@
-FROM python:3.12-slim
+FROM python:3.12-bullseye
 
-# Evita arquivos .pyc e ativa logs imediatos
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Dependências de sistema (psycopg2, Pillow, etc.)
+# Dependências de sistema já mais leves
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
     libpq-dev \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Instala dependências Python
-COPY requirements/base.txt .
-RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements/base.txt
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# Copia o projeto
 COPY . .
