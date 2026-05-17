@@ -9,7 +9,9 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseU
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from phonenumber_field.modelfields import PhoneNumberField
+from phonenumbers import parse, format_number, PhoneNumberFormat
 from .validators import validate_image_file, validar_cep, validate_cpf, validate_cnpj
+from encrypted_model_fields.fields import EncryptedTextField
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -88,8 +90,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         _("Tipo de usuário"), max_length=20,
         choices=UserRole.choices, default=UserRole.MEMBER,
     )
-    first_name = models.CharField(_('Primeiro nome'), max_length=30)
-    last_name  = models.CharField(_('Sobrenome'), max_length=30)
+    first_name = models.CharField(_('Primeiro nome'), max_length=100)
+    last_name  = models.CharField(_('Sobrenome'), max_length=100, blank=True)
     email      = models.EmailField(_('E-mail'), max_length=255, unique=True)
 
     # ── Foto ─────────────────────────────────────────────────────────────────
@@ -104,7 +106,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text=_('Formatos aceitos: jpg, jpeg ou png. Máx: 5MB.'),
     )
 
-    phone       = PhoneNumberField(region="BR", unique=True, null=True, blank=True)
+    phone       = PhoneNumberField(region="BR", blank=True, default="", null=False, help_text=_('Número de telefone no formato internacional, ex: +55 11 99999-8888.'))
     slug        = models.SlugField(max_length=255, unique=True, editable=False)
     is_staff    = models.BooleanField(_('Staff'), default=False)
     is_active   = models.BooleanField(_('Ativo?'), default=True)
@@ -166,6 +168,18 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+    
+    
+
+    def normalize_phone(phone_str: str) -> str:
+        number = parse(phone_str, "BR")
+        return format_number(number, PhoneNumberFormat.E164)
+
+    
+    def clean(self):
+        super().clean()
+        if self.role == self.UserRole.MEMBER and not self.last_name:
+            raise ValidationError({"last_name": _("Sobrenome é obrigatório para membros.")})
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -180,14 +194,11 @@ class User(AbstractBaseUser, PermissionsMixin):
                 num += 1
             self.slug = unique_slug
 
-        # Garante que a foto nunca fique vazia no banco
         if not self.photo:
             self.photo = DEFAULT_USER_PHOTO
 
         super().save(*args, **kwargs)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
 
 class BaseAddress(models.Model):
     class States(models.TextChoices):
@@ -254,18 +265,19 @@ class BaseAddress(models.Model):
         super().save(*args, **kwargs)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 class Church(models.Model):
-    user        = models.OneToOneField(User, on_delete=models.CASCADE, related_name="church")
-    is_verified = models.BooleanField(_('Autorizado?'), default=False)
-    cnpj        = models.CharField(
-        max_length=18, unique=True, null=True, blank=True,
-        validators=[validate_cnpj],
-    )
+    user          = models.OneToOneField(User, on_delete=models.CASCADE, related_name="church")
+    is_verified   = models.BooleanField(_('Autorizado?'), default=False)
+    cnpj          = models.CharField( max_length=18, unique=True, null=True, blank=True, validators=[validate_cnpj], help_text=_('Formato: 00.000.000/0000-00.'))
+    asaas_token   = EncryptedTextField(null=True, blank=True, help_text=_('Token de acesso à API do Asaas.'))
+    total_members = models.PositiveIntegerField(_('Total de membros'), null=True, blank=True, default=0)
+    instagram     = models.URLField(_('Instagram'), max_length=255, null=True, blank=True)
+    website       = models.URLField(_('Site'), max_length=255, null=True, blank=True)
+    about         = models.TextField(_('Sobre'), null=True, blank=True, help_text=_('Descrição da igreja. Máx: 1000 caracteres.'))
 
-    # ── Banner ────────────────────────────────────────────────────────────────
-    # upload_to callable → church_banners/<user_uuid>/banner.jpg no MinIO.
+    
     banner = models.ImageField(
         upload_to=church_banner_path,
         default=DEFAULT_CHURCH_BANNER,
@@ -295,6 +307,10 @@ class Church(models.Model):
                 pass
         from django.conf import settings
         return f"{settings.MEDIA_URL}{DEFAULT_CHURCH_BANNER}"
+    
+    def refresh_total_members(self) -> None:
+        self.total_members = self.member_memberships.filter(status=MemberChurch.Status.ACTIVE).count()
+        self.save(update_fields=['total_members'])
 
     def save(self, *args, **kwargs):
         if not self.banner:
@@ -315,18 +331,8 @@ class ChurchAddress(BaseAddress):
 
 class Member(models.Model):
     user          = models.OneToOneField(User, on_delete=models.CASCADE, related_name="member")
-    cpf           = models.CharField(
-        max_length=14, unique=True, null=True, blank=True,
-        validators=[validate_cpf],
-    )
-    date_of_birth = models.DateField(
-        _('Data de nascimento'), null=True, blank=True,
-        help_text=_('Formato: DD/MM/AAAA.'),
-    )
-    church = models.ForeignKey(
-        Church, on_delete=models.PROTECT,
-        null=True, blank=True, related_name='members',
-    )
+    cpf           = models.CharField(max_length=14, unique=True, null=True, blank=True,  validators=[validate_cpf], help_text=_('Formato: 000.000.000-00.'))
+    date_of_birth = models.DateField(_('Data de nascimento'), null=True, blank=True,  help_text=_('Formato: DD/MM/AAAA.'),)  
 
     def clean(self):
         if self.date_of_birth and self.date_of_birth > timezone.localdate():
@@ -351,3 +357,25 @@ class MemberAddress(BaseAddress):
                 member=self.member, principal=True
             ).exclude(pk=self.pk).update(principal=False)
         super().save(*args, **kwargs)
+
+
+class MemberChurch(models.Model):
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Ativo"
+        INACTIVE = "inactive", "Inativo"
+        PENDING = "pending", "Pendente"
+
+    member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='church_memberships')
+    church = models.ForeignKey(Church, on_delete=models.CASCADE, related_name='member_memberships')
+    status = models.CharField(_('Status'), max_length=20, choices=Status.choices, default=Status.PENDING)
+    joined_at = models.DateTimeField(_('Data de adesão'), auto_now_add=True, editable=False, help_text=_('Data e hora em que o membro se vinculou à igreja.'))
+    left_at = models.DateTimeField(_('Data de saída'), null=True, blank=True, help_text=_('Data e hora em que o membro se desvinculou da igreja. Deixe em branco se ainda for membro.'))
+
+    class Meta:
+        unique_together = ('member', 'church')
+        verbose_name        = "Vínculo Membro-Igreja"
+        verbose_name_plural = "Vínculos Membro-Igreja"
+        ordering = ['-joined_at']
+        indexes = [
+            models.Index(fields=['member', 'church']),
+        ]

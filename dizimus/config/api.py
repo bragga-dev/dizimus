@@ -1,23 +1,42 @@
-from ninja import NinjaAPI
+from ninja import NinjaAPI, Swagger
 from ninja_jwt.authentication import JWTAuth
 from ninja.errors import ValidationError, AuthenticationError
 from django.http import HttpRequest
 from django.http import JsonResponse
 
+# USERS
+from dizimus.apps.users.auth import router as auth_router
+from dizimus.apps.users.api import router as users_router
+
+# CHURCHES
+# ajuste o import conforme a estrutura real
+# from dizimus.apps.churches.api import router as churches_router
+
+# MEMBERS
+# ajuste o import conforme a estrutura real
+# from dizimus.apps.members.api import router as members_router
+
+
 api = NinjaAPI(
     title="DIZIMUS API",
     version="1.0.0",
     description="API para gerenciamento de igrejas e membros.",
-    auth=JWTAuth(),  # todas as rotas protegidas por padrão
+    auth=JWTAuth(),
     urls_namespace="api",
+    docs=Swagger(settings={
+        "persistAuthorization": True,
+    })
 )
 
+
 # ── Routers ───────────────────────────────────────────────────────────────────
-# auth=False nas rotas de auth pois login/registro são públicos
-api.add_router("/auth/",     "dizimus.apps.users.routers.auth_router",    tags=["Auth"])
-api.add_router("/users/",    "dizimus.apps.users.routers.users_router",   tags=["Users"])
-api.add_router("/churches/", "dizimus.apps.churches.routers.router",      tags=["Churches"])
-api.add_router("/members/",  "dizimus.apps.members.routers.router",       tags=["Members"])
+
+api.add_router("/auth/", auth_router, tags=["Auth"])
+api.add_router("/users/", users_router, tags=["Users"])
+
+# descomente quando confirmar os caminhos reais
+# api.add_router("/churches/", churches_router, tags=["Churches"])
+# api.add_router("/members/", members_router, tags=["Members"])
 
 
 # ── Handlers de erro globais ──────────────────────────────────────────────────

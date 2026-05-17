@@ -1,5 +1,5 @@
 from pathlib import Path
-
+from datetime import timedelta
 import environ
 
 
@@ -50,7 +50,11 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "ninja",
-    "ninja_simple_jwt",
+    "ninja_extra",
+    "ninja_jwt",
+    "ninja_jwt.token_blacklist",
+    "storages",
+    "encrypted_model_fields",
 ]
 
 
@@ -313,51 +317,92 @@ DEFAULT_REPLY_TO_EMAIL = env("DEFAULT_REPLY_TO_EMAIL", default=DEFAULT_FROM_EMAI
 # =========================================================
 # JWT
 # =========================================================
+NINJA_JWT = {
+    # ── Tempo de vida dos tokens ──────────────────────────────────────────
+    "ACCESS_TOKEN_LIFETIME":  timedelta(hours=90),  
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=100),
 
-NINJA_SIMPLE_JWT = {"USE_STATELESS_AUTH": False,}
+    # ── Rotação de refresh ────────────────────────────────────────────────
+    # A cada uso do refresh, um novo é gerado e o anterior é invalidado
+    "ROTATE_REFRESH_TOKENS":    True,  # exige ninja_jwt.token_blacklist
+    "BLACKLIST_AFTER_ROTATION": True,  # exige ninja_jwt.token_blacklist
 
+    # ── Login ─────────────────────────────────────────────────────────────
+    "UPDATE_LAST_LOGIN": True,  # atualiza User.last_login no login
+
+    # ── Algoritmo e chave ─────────────────────────────────────────────────
+    "ALGORITHM":   "HS256",
+    "SIGNING_KEY": env("SECRET_KEY"),  # ou uma chave JWT independente (recomendado)
+    "VERIFYING_KEY": None,
+
+    # ── Header ────────────────────────────────────────────────────────────
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_HEADER_NAME":  "HTTP_AUTHORIZATION",
+
+    # ── Identificação do usuário no token ─────────────────────────────────
+    # Seu User usa UUID como PK — precisa declarar explicitamente
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+
+    # ── Outros ───────────────────────────────────────────────────────────
+    "LEEWAY": 0,
+    "AUDIENCE": None,
+    "ISSUER": None,
+}
 
 # =========================================================
 # AUTH
 # =========================================================
 
 AUTH_USER_MODEL = "users.User"
+
+
 # =========================================================
-# STORAGES — MinIO (S3-compatible)
+# STORAGES — MINIO / S3
 # =========================================================
 
-MINIO_ENDPOINT    = env("MINIO_ENDPOINT",       default="localhost:9000")
-MINIO_ACCESS_KEY  = env("MINIO_ACCESS_KEY",     default="minioadmin")
-MINIO_SECRET_KEY  = env("MINIO_SECRET_KEY",     default="minioadmin")
-MINIO_BUCKET_NAME = env("MINIO_BUCKET_NAME",    default="dizimus")
-MINIO_USE_HTTPS   = env.bool("MINIO_USE_HTTPS", default=False)
+AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
 
-_minio_scheme = "https" if MINIO_USE_HTTPS else "http"
+AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
+
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
+
+AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")
+
+AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME",  default="us-east-1")
+
+AWS_DEFAULT_ACL = None
+
+AWS_QUERYSTRING_AUTH = False
+
+AWS_S3_FILE_OVERWRITE = False
+
+AWS_S3_VERIFY = False
+
+AWS_S3_ADDRESSING_STYLE = "path"
 
 STORAGES = {
     "default": {
-        # Arquivos de upload (media): fotos, banners, etc.
-        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-        "OPTIONS": {
-            "access_key":           MINIO_ACCESS_KEY,
-            "secret_key":           MINIO_SECRET_KEY,
-            "bucket_name":          MINIO_BUCKET_NAME,
-            "endpoint_url":         f"{_minio_scheme}://{MINIO_ENDPOINT}",
-            "region_name":          "us-east-1",       # MinIO ignora, mas boto3 exige
-            "file_overwrite":       False,              # evita sobrescrever arquivos com mesmo nome
-            "default_acl":          None,               # MinIO gerencia ACL internamente
-            "use_ssl":              MINIO_USE_HTTPS,
-            "verify":               MINIO_USE_HTTPS,    # False em dev (sem cert válido)
-            "object_parameters": {
-                "CacheControl": "max-age=86400",        # cache de 1 dia nos browsers
-            },
-        },
+        "BACKEND": "storages.backends.s3.S3Storage",
     },
+
     "staticfiles": {
-        # Mantém estáticos locais em dev; troque em prod se quiser no MinIO também
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
 
-# Mantém MEDIA_URL apontando para o MinIO
-MEDIA_URL = f"{_minio_scheme}://{MINIO_ENDPOINT}/{MINIO_BUCKET_NAME}/"
+MEDIA_URL = (
+    f"{AWS_S3_ENDPOINT_URL}/"
+    f"{AWS_STORAGE_BUCKET_NAME}/"
+)
+
+# =========================================================
+# FIELD ENCRYPTION
+# =========================================================
+FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY") 
+
+
+# =========================================================
+# FRONTEND  
+# =========================================================
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")

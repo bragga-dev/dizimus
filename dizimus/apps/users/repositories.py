@@ -6,7 +6,7 @@ import uuid
 from typing import Optional
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
-from users.models import User, Church, Member
+from dizimus.apps.users.models import User, Church, Member
 
 
 def create_user(

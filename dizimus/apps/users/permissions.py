@@ -28,9 +28,11 @@ def require_superuser(user: User) -> bool:
 #   def endpoint(request):
 #       check_permission(request.auth, require_church)
 #       ...
-
+        
 def check_permission(user: User, *checks) -> None:
     from users.exceptions import PermissionDenied
+    if user.is_superuser:
+        return  
     for check in checks:
         if not check(user):
             raise PermissionDenied()

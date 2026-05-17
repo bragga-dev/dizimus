@@ -5,10 +5,10 @@ Registrado em config/api.py como: api.add_router("/users/", ...)
 from ninja import Router, File, UploadedFile
 from ninja_jwt.authentication import JWTAuth
 
-from users import services, repositories
-from users.schemas import UserOut, UserUpdateIn, MessageOut
-from users.exceptions import UserAlreadyExists
-from users.validators import validate_image_file
+from dizimus.apps.users import services, repositories
+from dizimus.apps.users.schemas.users_schemas import UserOut, UserUpdateIn, MessageOut
+from dizimus.apps.users.exceptions import UserAlreadyExists
+from dizimus.apps.users.validators import validate_image_file
 from django.core.exceptions import ValidationError as DjangoValidationError
 
 router = Router(auth=JWTAuth())  # todas as rotas deste router exigem JWT

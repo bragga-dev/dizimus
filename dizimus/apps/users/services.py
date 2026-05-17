@@ -12,9 +12,9 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from ninja_jwt.tokens import RefreshToken
 
-from users.models import User
-from users import selectors, repositories
-from users.exceptions import (
+from dizimus.apps.users.models import User
+from dizimus.apps.users import selectors, repositories
+from dizimus.apps.users.exceptions import (
     UserAlreadyExists,
     InvalidCredentials,
     UserNotFound,
@@ -23,7 +23,7 @@ from users.exceptions import (
 )
 
 if TYPE_CHECKING:
-    from users.schemas import RegisterIn, UserUpdateIn
+    from dizimus.apps.users.schemas import RegisterIn, UserUpdateIn
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ def register_user(data: RegisterIn) -> dict:
         repositories.create_member_profile(user)
 
     # Dispara e-mail de verificação (Celery)
-    from users.tasks import send_verification_email
+    from dizimus.apps.users.tasks import send_verification_email
     send_verification_email.delay(user.pk)
 
     return _make_tokens(user)
@@ -105,7 +105,7 @@ def request_password_reset(email: str) -> None:
     if not user:
         return
 
-    from users.tasks import send_password_reset_email
+    from dizimus.apps.users.tasks import send_password_reset_email
     uid   = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
     send_password_reset_email.delay(user.pk, uid, token)

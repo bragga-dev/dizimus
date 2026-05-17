@@ -12,7 +12,7 @@ from django.utils.http import urlsafe_base64_encode
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def send_verification_email(self, user_id: str) -> None:
-    from users.models import User
+    from dizimus.apps.users.models import User
     try:
         user  = User.objects.get(pk=user_id)
         uid   = urlsafe_base64_encode(force_bytes(user.pk))
@@ -37,7 +37,7 @@ def send_verification_email(self, user_id: str) -> None:
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def send_password_reset_email(self, user_id: str, uid: str, token: str) -> None:
-    from users.models import User
+    from dizimus.apps.users.models import User
     try:
         user       = User.objects.get(pk=user_id)
         reset_url  = f"{settings.FRONTEND_URL}/redefinir-senha/{uid}/{token}/"

@@ -8,7 +8,7 @@ from validate_docbr import CPF, CNPJ
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 
-from users.models import User
+from dizimus.apps.users.models import User
 
 _cpf  = CPF()
 _cnpj = CNPJ()
@@ -35,13 +35,6 @@ class RegisterIn(Schema):
         import re
         if not re.match(r'^[\w.@+-]+$', v):
             raise ValueError("Username inválido. Use apenas letras, números e @/./+/-/_.")
-        return v
-
-    @field_validator("role")
-    @classmethod
-    def role_not_admin(cls, v: str) -> str:
-        if v == User.UserRole.ADMIN:
-            raise ValueError("Não é permitido criar um usuário com role 'admin'.")
         return v
 
     @field_validator("password")

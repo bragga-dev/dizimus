@@ -4,9 +4,8 @@ Registrado em config/api.py como: api.add_router("/auth/", ...)
 """
 from ninja import Router
 from ninja_jwt.authentication import JWTAuth
-
-from users import services
-from users.schemas import (
+from dizimus.apps.users import services
+from dizimus.apps.users.schemas.users_schemas import (
     RegisterIn,
     LoginIn,
     TokenOut,
@@ -16,7 +15,7 @@ from users.schemas import (
     PasswordResetConfirmIn,
     MessageOut,
 )
-from users.exceptions import (
+from dizimus.apps.users.exceptions import (
     UserAlreadyExists,
     InvalidCredentials,
     InvalidPassword,
