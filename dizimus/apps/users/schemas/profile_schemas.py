@@ -114,7 +114,7 @@ class AddressIn(Schema):
     @field_validator("cep")
     @classmethod
     def check_cep(cls, v: str) -> str:
-        from dizimus.apps.users.validators.validate_cpf_cnpj import validar_cep
+        from dizimus.apps.users.validators.validate_cep import validar_cep
         try:
             validar_cep(v)
         except DjangoValidationError as e:
