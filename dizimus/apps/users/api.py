@@ -22,7 +22,8 @@ from dizimus.apps.users.schemas.profile_schemas import (
     MemberUpdateIn,
 )
 from dizimus.apps.users.schemas.users_schemas import MessageOut, UserOut, UserUpdateIn
-from dizimus.apps.users.validators import validate_image_file
+from .validators.validate_image_file import validate_image_file
+from .validators.validate_cpf_cnpj import validate_cpf, validate_cnpj
 
 router = Router(auth=JWTAuth())
 

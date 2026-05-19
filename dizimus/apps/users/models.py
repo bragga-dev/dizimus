@@ -10,7 +10,9 @@ from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumbers import parse, format_number, PhoneNumberFormat
-from .validators import validate_image_file, validar_cep, validate_cpf, validate_cnpj
+from dizimus.apps.users.validators.validate_cpf_cnpj import  validate_cpf, validate_cnpj
+from dizimus.apps.users.validators.validate_image_file import validate_image_file
+from dizimus.apps.users.validators.validate_cep import validar_cep
 from encrypted_model_fields.fields import EncryptedTextField
 
 
