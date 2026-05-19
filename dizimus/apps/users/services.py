@@ -58,7 +58,7 @@ def register_user(data: RegisterIn) -> dict:
         repositories.create_member_profile(user)
 
     # Dispara e-mail de verificação (Celery)
-    from dizimus.apps.users.tasks import send_verification_email
+    from dizimus.apps.users.tasks.verification import send_verification_email
     send_verification_email.delay(user.pk)
 
     return _make_tokens(user)
@@ -108,7 +108,7 @@ def request_password_reset(email: str) -> None:
     if not user:
         return
 
-    from dizimus.apps.users.tasks import send_password_reset_email
+    from dizimus.apps.users.tasks.password_reset import send_password_reset_email
     uid   = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
     send_password_reset_email.delay(user.pk, uid, token)

@@ -100,6 +100,7 @@ class PasswordResetRequestIn(Schema):
 
 
 class PasswordResetConfirmIn(Schema):
+    uid:         str
     token:        str
     new_password: str = Field(..., min_length=8)
     new_password2: str

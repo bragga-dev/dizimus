@@ -115,31 +115,20 @@ def change_password(request, payload: ChangePasswordIn):
 
 # ── Reset de senha ────────────────────────────────────────────────────────────
 
-@router.post(
-    "/password-reset/request",
-    response={200: MessageOut},
-    auth=None,
-    summary="Solicitar reset de senha",
-)
+@router.post("/password-reset/request", response={200: MessageOut}, auth=None, summary="Solicitar reset de senha",)
 def password_reset_request(request, payload: PasswordResetRequestIn):
-    # Sempre retorna 200 — não revela se o e-mail existe (segurança)
     services.request_password_reset(payload.email)
     return 200, {"detail": "Se este e-mail estiver cadastrado, você receberá as instruções em breve."}
 
 
-@router.post(
-    "/password-reset/confirm",
-    response={200: MessageOut, 400: MessageOut},
-    auth=None,
-    summary="Confirmar reset de senha",
-)
+@router.post("/password-reset/confirm", response={200: MessageOut, 400: MessageOut}, auth=None, summary="Confirmar reset de senha (nova versão)")
 def password_reset_confirm(request, payload: PasswordResetConfirmIn):
     try:
         services.confirm_password_reset(
-            uidb64=payload.token.split(":")[0],
-            token=payload.token.split(":")[1],
+            uidb64=payload.uid,
+            token=payload.token,
             new_password=payload.new_password,
         )
         return 200, {"detail": "Senha redefinida com sucesso."}
-    except (InvalidToken, IndexError) as e:
+    except InvalidToken:
         return 400, {"detail": "Token inválido ou expirado."}
