@@ -11,7 +11,7 @@ from typing import Optional
 from ninja import Schema
 from pydantic import field_validator
 
-from dizimus.apps.users.validators import validate_cpf, validate_cnpj
+from dizimus.apps.users.validators.validate_cpf_cnpj import validate_cpf, validate_cnpj
 from django.core.exceptions import ValidationError as DjangoValidationError
 
 
@@ -114,7 +114,7 @@ class AddressIn(Schema):
     @field_validator("cep")
     @classmethod
     def check_cep(cls, v: str) -> str:
-        from dizimus.apps.users.validators import validar_cep
+        from dizimus.apps.users.validators.validate_cpf_cnpj import validar_cep
         try:
             validar_cep(v)
         except DjangoValidationError as e:
@@ -148,7 +148,7 @@ class AddressUpdateIn(Schema):
     def check_cep(cls, v: str | None) -> str | None:
         if v is None:
             return v
-        from dizimus.apps.users.validators import validar_cep
+        from dizimus.apps.users.validators.validate_cpf_cnpj import validar_cep
         try:
             validar_cep(v)
         except DjangoValidationError as e:

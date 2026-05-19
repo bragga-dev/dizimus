@@ -96,26 +96,136 @@ dizimus/
 Cada app segue uma arquitetura baseada em separação de responsabilidades:
 
 ```
-apps/members/
+apps/users/
+│
+├── admin/
+│   ├── user_admin.py
+│   ├── group_admin.py
+│   └── __init__.py
+│
+├── api/
+│   ├── auth.py
+│   ├── profile.py
+│   ├── verification.py
+│   ├── password_reset.py
+│   ├── sessions.py
+│   └── __init__.py
+│
+├── schemas/
+│   ├── auth.py
+│   ├── profile.py
+│   ├── verification.py
+│   ├── password_reset.py
+│   ├── common.py
+│   └── __init__.py
+│
+├── models/
+│   ├── user.py
+│   ├── profile.py
+│   ├── session.py
+│   ├── security_event.py
+│   └── __init__.py
+│
+├── services/
+│   ├── auth/
+│   │   ├── login.py
+│   │   ├── register.py
+│   │   ├── refresh_token.py
+│   │   ├── logout.py
+│   │   └── change_password.py
+│   │
+│   ├── profile/
+│   │   ├── update_profile.py
+│   │   ├── upload_avatar.py
+│   │   └── remove_avatar.py
+│   │
+│   ├── verification/
+│   │   ├── send_email.py
+│   │   ├── verify_email.py
+│   │   └── resend_email.py
+│   │
+│   ├── password_reset/
+│   │   ├── request_reset.py
+│   │   ├── confirm_reset.py
+│   │   └── validate_token.py
+│   │
+│   └── __init__.py
+│
+├── selectors/
+│   ├── users.py
+│   ├── profiles.py
+│   ├── sessions.py
+│   └── __init__.py
+│
+├── repositories/
+│   ├── users.py
+│   ├── profiles.py
+│   ├── sessions.py
+│   └── __init__.py
+│
+├── tasks/
+│   ├── emails.py
+│   ├── cleanup.py
+│   ├── security.py
+│   └── __init__.py
+│
+├── tokens/
+│   ├── email_verification.py
+│   ├── password_reset.py
+│   ├── jwt.py
+│   └── __init__.py
+│
+├── permissions/
+│   ├── roles.py
+│   ├── auth.py
+│   ├── ownership.py
+│   └── __init__.py
+│
+├── validators/
+│   ├── password.py
+│   ├── username.py
+│   ├── image.py
+│   └── __init__.py
+│
+├── exceptions/
+│   ├── auth.py
+│   ├── verification.py
+│   ├── profile.py
+│   └── __init__.py
+│
+├── constants/
+│   ├── roles.py
+│   ├── auth.py
+│   ├── limits.py
+│   └── __init__.py
+│
+├── filters/
+│   ├── users.py
+│   └── __init__.py
+│
+├── signals/
+│   ├── auth.py
+│   ├── profile.py
+│   └── __init__.py
+│
+├── utils/
+│   ├── slug.py
+│   ├── ip.py
+│   ├── device.py
+│   └── __init__.py
+│
+├── tests/
+│   ├── factories/
+│   ├── unit/
+│   ├── integration/
+│   ├── e2e/
+│   └── __init__.py
 │
 ├── migrations/
 │
-├── models.py          # Modelos do banco de dados
-├── schemas/           # Schemas do Django Ninja / Pydantic
-├── api.py             # Endpoints da API
-├── services.py        # Regras de negócio
-├── selectors.py       # Queries e leitura de dados
-├── repositories.py    # Persistência e acesso ao banco
-├── tasks.py           # Tarefas assíncronas do Celery
-├── permissions.py     # Controle de permissões
-├── filters.py         # Filtros de consulta
-├── signals.py         # Eventos do Django
-├── constants.py       # Constantes do domínio
-├── exceptions.py      # Exceções customizadas
 ├── apps.py
 ├── urls.py
-│
-└── tests/
+└── __init__.py
 ```
 
 ---
