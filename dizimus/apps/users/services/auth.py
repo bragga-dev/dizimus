@@ -3,7 +3,7 @@ Auth Services — autenticação, login, logout, refresh token.
 """
 from django.contrib.auth import authenticate
 from ninja_jwt.tokens import RefreshToken
-
+from dizimus.apps.users.selectors import get_user_by_email
 from dizimus.apps.users.models import User
 from dizimus.apps.users.exceptions import (
     InvalidCredentials,

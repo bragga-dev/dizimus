@@ -4,7 +4,7 @@ User Services — criação e atualização de usuário base.
 from dizimus.apps.users.models import User
 from dizimus.apps.users import selectors, repositories
 from dizimus.apps.users.exceptions import UserAlreadyExists
-
+from dizimus.apps.users.selectors import email_exists, username_exists, get_user_by_email, get_user_by_slug
 from dizimus.apps.users.schemas import RegisterIn, UserUpdateIn
 
 
