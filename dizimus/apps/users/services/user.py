@@ -2,9 +2,9 @@
 User Services — criação e atualização de usuário base.
 """
 from dizimus.apps.users.models import User
-from dizimus.apps.users import selectors, repositories
+from dizimus.apps.users import repositories
 from dizimus.apps.users.exceptions import UserAlreadyExists
-from dizimus.apps.users.selectors import email_exists, username_exists, get_user_by_email, get_user_by_slug
+from dizimus.apps.users.selectors import email_exists, username_exists
 from dizimus.apps.users.schemas import RegisterIn, UserUpdateIn
 
 
@@ -13,9 +13,9 @@ def register_user(data: RegisterIn) -> dict:
     Cria o User + perfil (Church ou Member) e dispara e-mail de verificação.
     Retorna os tokens JWT diretamente para o cliente já poder operar.
     """
-    if selectors.email_exists(data.email):
+    if email_exists(data.email):
         raise UserAlreadyExists("e-mail")
-    if selectors.username_exists(data.username):
+    if username_exists(data.username):
         raise UserAlreadyExists("username")
 
     user = repositories.create_user(
@@ -28,13 +28,11 @@ def register_user(data: RegisterIn) -> dict:
         phone=data.phone,
     )
 
-    # Cria o perfil conforme o role escolhido
     if user.role == User.UserRole.CHURCH:
         repositories.create_church_profile(user)
     else:
         repositories.create_member_profile(user)
 
-    # Dispara e-mail de verificação (Celery)
     from dizimus.apps.users.tasks.verification import send_verification_email
     send_verification_email.delay(user.pk)
 
@@ -45,7 +43,7 @@ def register_user(data: RegisterIn) -> dict:
 def update_user_profile(user: User, data: UserUpdateIn) -> User:
     payload = data.model_dump(exclude_none=True)
 
-    if "username" in payload and selectors.username_exists(payload["username"], exclude_id=user.pk):
+    if "username" in payload and username_exists(payload["username"], exclude_id=user.pk):
         raise UserAlreadyExists("username")
 
     return repositories.update_user(user, **payload)

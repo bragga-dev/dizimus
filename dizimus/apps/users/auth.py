@@ -22,6 +22,9 @@ from dizimus.apps.users.exceptions import (
     InvalidToken,
 )
 
+from dizimus.apps.users.api.verification import router as verification_router
+
+
 router = Router()
 
 
@@ -132,3 +135,8 @@ def password_reset_confirm(request, payload: PasswordResetConfirmIn):
         return 200, {"detail": "Senha redefinida com sucesso."}
     except InvalidToken:
         return 400, {"detail": "Token inválido ou expirado."}
+
+
+
+
+router.add_router("", verification_router)

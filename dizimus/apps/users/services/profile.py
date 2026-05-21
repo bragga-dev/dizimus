@@ -5,7 +5,8 @@ from dizimus.apps.users.models import User, Church, Member
 from dizimus.apps.users import repositories
 from dizimus.apps.users.exceptions import UserAlreadyExists
 from dizimus.apps.users.schemas.profile_schemas import ChurchUpdateIn, MemberUpdateIn
-
+from dizimus.apps.users.selectors.profile import get_church_by_cnpj, get_member_by_cpf
+from dizimus.apps.users.exceptions import UserAlreadyExists
 
 def _get_church(user: User) -> Church:
     church, _ = Church.objects.get_or_create(user=user)
@@ -18,26 +19,19 @@ def _get_member(user: User) -> Member:
 
 
 def update_church_profile(user: User, data: ChurchUpdateIn) -> Church:
-    """
-    Atualiza o perfil da Igreja.
-    Valida unicidade de CNPJ antes de persistir.
-    """
     payload = data.model_dump(exclude_none=True)
-
     if "cnpj" in payload:
-        if Church.objects.filter(cnpj=payload["cnpj"]).exclude(user=user).exists():
-            raise UserAlreadyExists("CNPJ")
+        existing_church = get_church_by_cnpj(payload["cnpj"])
+        if existing_church and existing_church.user != user:
+            raise UserAlreadyExists("CNPJ já cadastrado para outra igreja")
     return repositories.update_church_profile(_get_church(user), **payload)
 
 
-def update_member_profile(user: User, data: MemberUpdateIn) -> Member:
-    """
-    Atualiza o perfil do Membro.
-    Valida unicidade de CPF antes de persistir.
-    """
-    payload = data.model_dump(exclude_none=True)
 
+def update_member_profile(user: User, data: MemberUpdateIn) -> Member:
+    payload = data.model_dump(exclude_none=True)
     if "cpf" in payload:
-        if Member.objects.filter(cpf=payload["cpf"]).exclude(user=user).exists():
-            raise UserAlreadyExists("CPF")
+        existing_member = get_member_by_cpf(payload["cpf"])
+        if existing_member and existing_member.user != user:
+            raise UserAlreadyExists("CPF já cadastrado para outro membro")
     return repositories.update_member_profile(_get_member(user), **payload)
