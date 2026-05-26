@@ -22,17 +22,21 @@ router = Router()
 # PERFIL ESPECÍFICO (Church | Member)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@router.get(
-    "/me/profile",
-    response={200: ChurchProfileOut | MemberProfileOut},
-    summary="Dados do perfil específico",
-    description="Retorna `ChurchProfileOut` para Igrejas ou `MemberProfileOut` para Membros.",
-)
+@router.get("/me/profile",  response={200: ChurchProfileOut | MemberProfileOut, 403: MessageOut, 404: MessageOut}, 
+summary="Obter meu perfil específico", description="Retorna os dados do perfil de acordo com a role do usuário autenticado. Exclusivo para usuários com role `church` ou `member`.")
+
 def get_my_profile(request):
     user: User = request.auth
+
     if user.role == User.UserRole.CHURCH:
         return 200, user.church
-    return 200, user.member
+
+    if user.role == User.UserRole.MEMBER:
+        return 200, user.member
+
+    return 403, {
+        "detail": "Administradores não possuem perfil público."
+    }
 
 
 @router.patch(

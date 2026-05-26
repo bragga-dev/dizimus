@@ -13,6 +13,7 @@ class ChurchOut(Schema):
     is_verified: bool
     cnpj:        Optional[str]
     banner_url:  str
+    
 
     @staticmethod
     def resolve_banner_url(obj) -> str:

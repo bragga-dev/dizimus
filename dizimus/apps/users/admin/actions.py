@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 
-from ..models import User, MemberChurch
+from ..models import User
 
 
 def export_to_csv(modeladmin, request, queryset):
@@ -78,17 +78,3 @@ def export_members_csv(modeladmin, request, queryset):
 export_members_csv.short_description = "⬇ Exportar membros selecionados para CSV"
 
 
-def activate_memberships(modeladmin, request, queryset):
-    updated = queryset.update(status=MemberChurch.Status.ACTIVE)
-    modeladmin.message_user(request, f"{updated} vínculo(s) ativado(s).", messages.SUCCESS)
-activate_memberships.short_description = "✅ Ativar vínculos selecionados"
-
-
-def deactivate_memberships(modeladmin, request, queryset):
-    from django.utils import timezone
-    updated = queryset.update(
-        status=MemberChurch.Status.INACTIVE,
-        left_at=timezone.now(),
-    )
-    modeladmin.message_user(request, f"{updated} vínculo(s) desativado(s).", messages.WARNING)
-deactivate_memberships.short_description = "🚫 Desativar vínculos selecionados"

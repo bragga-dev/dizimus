@@ -5,8 +5,9 @@ from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
 
-from ..models import MemberChurch
-from .actions import activate_memberships, deactivate_memberships, export_to_csv
+from community.models.member_church import MemberChurch
+from dizimus.apps.users.admin.actions import  export_to_csv
+from dizimus.apps.community.admin.actions import activate_memberships, deactivate_memberships
 
 
 @admin.register(MemberChurch)
@@ -20,7 +21,7 @@ class MemberChurchAdmin(admin.ModelAdmin):
         "left_at",
         "duration",
     )
-    list_filter = ("status", "church", "role")  # role existe no model
+    list_filter = ("status", "church", "role")  
     search_fields = (
         "member__user__first_name",
         "member__user__last_name",

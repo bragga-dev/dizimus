@@ -26,6 +26,7 @@ class ChurchUpdateIn(Schema):
     instagram: Optional[str] = None
     website:   Optional[str] = None
     about:     Optional[str] = None
+    asaas_token: Optional[str] = None
 
     @field_validator("cnpj")
     @classmethod
@@ -51,6 +52,7 @@ class ChurchProfileOut(Schema):
     instagram:     Optional[str]
     website:       Optional[str]
     about:         Optional[str]
+    has_valid_asaas_token: bool
     total_members: int
     is_verified:   bool
     banner_url:    str

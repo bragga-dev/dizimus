@@ -64,7 +64,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "dizimus.apps.users",
-    # "dizimus.apps.churches",
+    "dizimus.apps.community",
     # "dizimus.apps.members",
     # "dizimus.apps.contributions",
     # "dizimus.apps.payments",
