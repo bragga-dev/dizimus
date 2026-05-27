@@ -1,7 +1,10 @@
+import uuid
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+
 
 from dizimus.apps.users.validators.validate_cpf_cnpj import validate_cpf
 from .user import User
@@ -9,6 +12,7 @@ from .base_address import BaseAddress
 
 
 class Member(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="member",
     )
@@ -37,6 +41,7 @@ class Member(models.Model):
 
 
 class MemberAddress(BaseAddress):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     member = models.ForeignKey(
         Member, on_delete=models.CASCADE, related_name='addresses',
     )

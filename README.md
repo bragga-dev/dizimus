@@ -297,3 +297,263 @@ celery -A config worker -l info
 - **Fácil manutenção** — organização previsível em todos os apps
 - **Preparação para microsserviços** — apps independentes e desacoplados
 - **Infraestrutura pronta para produção** — Docker, Nginx, Gunicorn e Whitenoise configurados
+
+# 🧪 Testes
+
+O projeto utiliza:
+
+* `pytest`
+* `pytest-django`
+* `pytest-cov`
+
+---
+
+# Instalação
+
+## Pip
+
+```bash
+pip install pytest pytest-django pytest-cov
+```
+
+## Poetry
+
+```bash
+poetry add --group dev pytest pytest-django pytest-cov
+```
+
+---
+
+# Rodando os testes
+
+## Rodar todos os testes
+
+```bash
+pytest
+```
+
+---
+
+## Rodar testes com coverage
+
+```bash
+pytest --cov=dizimus --cov-report=term-missing
+```
+
+---
+
+## Rodar testes de um app específico
+
+### Users
+
+```bash
+pytest dizimus/apps/users/tests/
+```
+
+### Community
+
+```bash
+pytest dizimus/apps/community/tests/
+```
+
+---
+
+## Rodar testes de um diretório específico
+
+### Schemas
+
+```bash
+pytest dizimus/apps/users/tests/schemas/
+```
+
+### Models
+
+```bash
+pytest dizimus/apps/users/tests/models/
+```
+
+### Services
+
+```bash
+pytest dizimus/apps/users/tests/services/
+```
+
+---
+
+# Coverage por módulo
+
+## Schemas
+
+```bash
+pytest dizimus/apps/users/tests/schemas/ \
+    --cov=dizimus.apps.users.schemas \
+    --cov-report=term-missing
+```
+
+---
+
+## Models
+
+```bash
+pytest dizimus/apps/users/tests/models/ \
+    --cov=dizimus.apps.users.models \
+    --cov-report=term-missing
+```
+
+---
+
+## Validators
+
+```bash
+pytest dizimus/apps/users/tests/validators/ \
+    --cov=dizimus.apps.users.validators \
+    --cov-report=term-missing
+```
+
+---
+
+## Services
+
+```bash
+pytest dizimus/apps/users/tests/services/ \
+    --cov=dizimus.apps.users.services \
+    --cov-report=term-missing
+```
+
+---
+
+# Flags úteis
+
+## Verbose
+
+```bash
+pytest -vv
+```
+
+---
+
+## Mostrar prints/logs
+
+```bash
+pytest -s
+```
+
+---
+
+## Parar no primeiro erro
+
+```bash
+pytest -x
+```
+
+---
+
+## Reexecutar apenas testes que falharam
+
+```bash
+pytest --lf
+```
+
+---
+
+## Executar um teste específico
+
+```bash
+pytest path/to/test_file.py
+```
+
+Exemplo:
+
+```bash
+pytest dizimus/apps/users/tests/models/test_user.py
+```
+
+---
+
+## Executar uma classe específica
+
+```bash
+pytest path/to/test_file.py::TestClassName
+```
+
+Exemplo:
+
+```bash
+pytest dizimus/apps/users/tests/models/test_user.py::TestUserModel
+```
+
+---
+
+## Executar um método específico
+
+```bash
+pytest path/to/test_file.py::TestClassName::test_method_name
+```
+
+Exemplo:
+
+```bash
+pytest dizimus/apps/users/tests/models/test_user.py::TestUserModel::test_create_user
+```
+
+---
+
+# Coverage HTML
+
+Gerar relatório HTML:
+
+```bash
+pytest --cov=dizimus --cov-report=html
+```
+
+Abrir relatório:
+
+```bash
+xdg-open htmlcov/index.html
+```
+
+---
+
+# Configuração recomendada do Coverage
+
+Adicionar no `pyproject.toml`:
+
+```toml
+[tool.coverage.run]
+omit = [
+    "*/migrations/*",
+    "*/config/*",
+]
+```
+
+---
+
+# Estrutura recomendada de testes
+
+```text
+apps/
+└── users/
+    └── tests/
+        ├── models/
+        ├── schemas/
+        ├── services/
+        ├── validators/
+        ├── api/
+        └── conftest.py
+```
+
+---
+
+# Boas práticas
+
+* Testar regras de negócio antes de testar interface/admin.
+* Priorizar testes de:
+
+  * services
+  * validators
+  * models
+  * autenticação
+  * permissões
+* Utilizar factories e fixtures reutilizáveis.
+* Evitar testes frágeis baseados em textos HTML.
+* Manter coverage acima de 80%.

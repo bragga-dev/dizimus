@@ -2,7 +2,8 @@ import uuid
 from typing import Optional
 from ninja import Schema, Field
 from validate_docbr import CNPJ
-from users.schemas import AddressIn, AddressOut, UserOut
+from dizimus.apps.users.schemas import AddressIn, AddressOut, UserOut
+from pydantic import field_validator
 
 _cnpj = CNPJ()
 

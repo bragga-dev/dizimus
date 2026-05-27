@@ -4,7 +4,7 @@ from typing import Optional
 from ninja import Schema, Field
 from pydantic import field_validator
 from validate_docbr import CPF
-from users.schemas import AddressIn, AddressOut, UserOut
+from dizimus.apps.users.schemas import AddressIn, AddressOut, UserOut
 
 _cpf = CPF()
 
@@ -14,7 +14,7 @@ class MemberOut(Schema):
     user:          UserOut
     cpf:           Optional[str]
     date_of_birth: Optional[date]
-    church_id:     Optional[uuid.UUID]
+    
 
 
 class MemberUpdateIn(Schema):

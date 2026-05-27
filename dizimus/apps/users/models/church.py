@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
+import uuid
 from encrypted_model_fields.fields import EncryptedTextField
 
 from dizimus.apps.users.validators.validate_cpf_cnpj import validate_cnpj
@@ -26,6 +26,7 @@ DEFAULT_CHURCH_BANNER = "default/banner.jpg"
 
 
 class Church(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False) 
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="church",
     )
@@ -102,6 +103,7 @@ class Church(models.Model):
 
 
 class ChurchAddress(BaseAddress):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     church = models.ForeignKey(
         Church, on_delete=models.CASCADE, related_name='addresses',
     )

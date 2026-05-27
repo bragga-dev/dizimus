@@ -2,7 +2,7 @@
 Schemas — Pydantic models para validação e serialização.
 """
 # Users schemas (auth e user base)
-from .users_schemas import (
+from dizimus.apps.users.schemas.users_schemas import (
     RegisterIn,
     LoginIn,
     TokenOut,
@@ -16,7 +16,7 @@ from .users_schemas import (
 )
 
 # Profile schemas (Church e Member específicos + Address)
-from .profile_schemas import (
+from dizimus.apps.users.schemas.profile_schemas import (
     ChurchUpdateIn,
     ChurchProfileOut,
     MemberUpdateIn,

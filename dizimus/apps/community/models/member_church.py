@@ -2,7 +2,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from dizimus.apps.users.models import Member, Church
-
+import uuid 
 
 class MemberChurch(models.Model):
     class Role(models.TextChoices):
@@ -16,7 +16,8 @@ class MemberChurch(models.Model):
         ACTIVE   = "active", "Ativo"
         INACTIVE = "inactive", "Inativo"
         PENDING  = "pending", "Pendente"
-
+        
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     role = models.CharField(_('Função'), max_length=30, choices=Role.choices, default=Role.MEMBER, db_index=True)
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='church_memberships')
     church = models.ForeignKey(Church, on_delete=models.CASCADE, related_name='member_memberships')
