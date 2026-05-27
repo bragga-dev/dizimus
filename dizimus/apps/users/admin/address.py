@@ -4,7 +4,8 @@ Address Admin — configuração do Django Admin para ChurchAddress e MemberAddr
 from django.contrib import admin
 from django.utils.html import format_html
 
-from ..models import ChurchAddress, MemberAddress
+from dizimus.apps.users.models.member import  MemberAddress
+from dizimus.apps.users.models.church import ChurchAddress
 
 
 @admin.register(ChurchAddress)

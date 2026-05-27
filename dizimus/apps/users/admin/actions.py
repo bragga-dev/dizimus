@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 
-from ..models import User
+from dizimus.apps.users.models.user import User
 
 
 def export_to_csv(modeladmin, request, queryset):

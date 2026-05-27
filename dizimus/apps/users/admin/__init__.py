@@ -5,7 +5,7 @@ from .user import UserAdmin
 from .church import ChurchAdmin
 from .member import MemberAdmin
 from .address import ChurchAddressAdmin, MemberAddressAdmin
-from .member_church import MemberChurchAdmin
+# from dizimus.apps.community.models.member_church import MemberChurchAdmin
 from .filters import *  # Opcional: exporta os filtros
 from .actions import *   # Opcional: exporta as ações
 from .inlines import *   # Opcional: exporta os inlines

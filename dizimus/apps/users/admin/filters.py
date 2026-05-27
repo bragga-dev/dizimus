@@ -5,7 +5,7 @@ from datetime import date
 from django.contrib.admin import SimpleListFilter
 from django.db.models import Q
 
-from ..models import MemberChurch
+from dizimus.apps.community.models.member_church import MemberChurch
 
 
 class HasPhotoFilter(SimpleListFilter):
@@ -68,7 +68,7 @@ class MembershipStatusFilter(SimpleListFilter):
     parameter_name = "membership_status"
 
     def lookups(self, request, model_admin):
-        from ..models import MemberChurch
+        from dizimus.apps.community.models.member_church import MemberChurch
         return MemberChurch.Status.choices
 
     def queryset(self, request, queryset):

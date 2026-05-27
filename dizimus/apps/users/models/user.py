@@ -16,7 +16,7 @@ from phonenumbers import parse, format_number, PhoneNumberFormat
 
 from dizimus.apps.users.validators.validate_image_file import validate_image_file
 from .constants import ROLE_ADMIN, ROLE_MEMBER, ROLE_CHURCH
-from .user_manager import UserManager
+from dizimus.apps.users.models.user_manage import UserManager
 
 
 # ─────────────────────────────────────────────────────────────────────────────

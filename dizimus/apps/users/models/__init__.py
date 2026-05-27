@@ -2,10 +2,10 @@
 # Código que fazia `from dizimus.apps.users.models import User` continua funcionando.
 
 from .constants import ROLE_ADMIN, ROLE_MEMBER, ROLE_CHURCH
-from .user_manager import UserManager
+from dizimus.apps.users.models.user_manage import UserManager
 from .user import User, user_photo_path, DEFAULT_USER_PHOTO
 from .base_address import BaseAddress
-from .member import Member, MemberAddress, MemberChurch
+from .member import Member, MemberAddress
 from .church import Church, ChurchAddress, church_banner_path, DEFAULT_CHURCH_BANNER
 
 __all__ = [
@@ -24,7 +24,6 @@ __all__ = [
     # Member
     "Member",
     "MemberAddress",
-    "MemberChurch",
     # Church
     "Church",
     "ChurchAddress",

@@ -6,7 +6,13 @@ from django.contrib import admin
 from django.db.models import Count
 from django.utils.html import format_html
 
-from ..models import Member, MemberChurch
+from ..models import Member
+
+from dizimus.apps.users.models.church import ChurchAddress
+from dizimus.apps.users.models.member import  MemberAddress
+from dizimus.apps.community.models.member_church import  MemberChurch
+
+
 from .actions import export_members_csv
 from .filters import AgeRangeFilter, MembershipStatusFilter, HasPhotoFilter
 from .inlines import MemberAddressInline, MemberMembershipInline
@@ -23,7 +29,7 @@ class MemberAdmin(admin.ModelAdmin):
         "age",
         "churches_count",
         "phone",
-        "primary_role",  # ADICIONADO
+        "primary_role",  
     )
     list_display_links = ("avatar_thumbnail", "full_name")
     list_filter = (
