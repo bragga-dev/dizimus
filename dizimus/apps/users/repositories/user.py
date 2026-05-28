@@ -16,6 +16,7 @@ def create_user(
     role: str,
     phone: Optional[str] = None,
 ) -> User:
+    phone_value = phone if phone is not None else ""
     user = User.objects.create_user(
         email=email,
         password=password,
@@ -23,7 +24,7 @@ def create_user(
         first_name=first_name,
         last_name=last_name,
         role=role,
-        phone=phone,
+        phone=phone_value,
     )
     return user
 
