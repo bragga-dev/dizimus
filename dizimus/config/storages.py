@@ -7,7 +7,9 @@ class MediaFilesStorage(S3Boto3Storage):
     bucket_name = os.environ.get("MINIO_BUCKET_MEDIA", "dizimus-media")
     default_acl = "public-read"
     file_overwrite = False
-    custom_domain = os.environ.get("MINIO_PUBLIC_URL")
+    custom_domain = (
+    f"{os.environ.get('MINIO_PUBLIC_URL')}/"
+    f"{os.environ.get('MINIO_BUCKET_MEDIA', 'dizimus-media')}")
     url_protocol = os.environ.get("MINIO_URL_PROTOCOL", "http:")
 
 class StaticFilesStorage(S3Boto3Storage):

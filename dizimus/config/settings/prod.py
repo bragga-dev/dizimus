@@ -195,3 +195,5 @@ USE_ETAGS = True
 # MINIO / S3
 # =========================================================
 MINIO_URL_PROTOCOL = "https:"
+
+AWS_S3_VERIFY = True

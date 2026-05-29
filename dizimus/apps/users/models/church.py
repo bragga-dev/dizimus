@@ -82,7 +82,7 @@ class Church(models.Model):
                 return self.banner.url
             except Exception:
                 pass
-        return f"{settings.MEDIA_URL}{DEFAULT_CHURCH_BANNER}"
+        return self.banner.storage.url(DEFAULT_CHURCH_BANNER)
 
     # ── Métodos de negócio ────────────────────────────────────────────────────
 

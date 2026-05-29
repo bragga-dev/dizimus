@@ -137,7 +137,7 @@ class User(AbstractBaseUser, PermissionsMixin):
                 return self.photo.url
             except Exception:
                 pass
-        return f"{settings.MEDIA_URL}{DEFAULT_USER_PHOTO}"
+        return self.photo.storage.url(DEFAULT_USER_PHOTO)
     
     # ── Utilitários internos ──────────────────────────────────────────────────
 
