@@ -3,7 +3,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 import uuid
 from encrypted_model_fields.fields import EncryptedTextField
-
+from django.db.models import UniqueConstraint
 from dizimus.apps.users.validators.validate_cpf_cnpj import validate_cnpj
 from dizimus.apps.users.validators.validate_image_file import validate_image_file
 from .user import User
@@ -26,29 +26,21 @@ DEFAULT_CHURCH_BANNER = "default/banner.jpg"
 
 
 class Church(models.Model):
+    class ChurchType(models.TextChoices):
+        HEADQUARTERS = "headquarters", "Sede/Matriz"
+        COMMUNITY = "community", "Comunidade"
+        INDEPENDENT = "independent", "Independente"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False) 
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="church",
-    )
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="church",)
+    parent_church = models.ForeignKey("self", on_delete=models.SET_NULL,  null=True, blank=True, related_name="child_churches",)
     is_verified = models.BooleanField(_('Autorizado?'), default=False)
-    cnpj = models.CharField(
-        max_length=18, unique=True, null=True, blank=True,
-        validators=[validate_cnpj],
-        help_text=_('Formato: 00.000.000/0000-00.'),
-    )
-    asaas_token = EncryptedTextField(
-        null=True, blank=True,
-        help_text=_('Token de acesso à API do Asaas.'),
-    )
-    total_members = models.PositiveIntegerField(
-        _('Total de membros'), null=True, blank=True, default=0,
-    )
+    cnpj = models.CharField(max_length=18, unique=False, null=True, blank=True,  validators=[validate_cnpj], help_text=_('Formato: 00.000.000/0000-00.'),)
+    asaas_token = EncryptedTextField( null=True, blank=True,  help_text=_('Token de acesso à API do Asaas.'),)
+    total_members = models.PositiveIntegerField(_('Total de membros'), null=True, blank=True, default=0,)
     instagram = models.URLField(_('Instagram'), max_length=255, null=True, blank=True)
     website   = models.URLField(_('Site'),      max_length=255, null=True, blank=True)
-    about     = models.TextField(
-        _('Sobre'), null=True, blank=True,
-        help_text=_('Descrição da igreja. Máx: 1000 caracteres.'),
-    )
+    about     = models.TextField(_('Sobre'), null=True, blank=True, help_text=_('Descrição da igreja. Máx: 1000 caracteres.'),)
     banner = models.ImageField(
         upload_to=church_banner_path,
         default=DEFAULT_CHURCH_BANNER,
@@ -61,6 +53,12 @@ class Church(models.Model):
     class Meta:
         verbose_name        = "Igreja"
         verbose_name_plural = "Igrejas"
+        constraints = [
+            UniqueConstraint(
+                fields=["cnpj", "first_name"],
+                name="unique_church_name_per_cnpj"
+            )
+        ]
 
     def __str__(self):
         return self.user.get_full_name()
