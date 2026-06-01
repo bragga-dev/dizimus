@@ -21,8 +21,6 @@ class UserAdmin(BaseUserAdmin):
     list_display = (
         "avatar_thumbnail",
         "email",
-        "get_full_name",
-        "username",
         "role_badge",
         "phone",
         "is_active_icon",
@@ -40,7 +38,7 @@ class UserAdmin(BaseUserAdmin):
         HasPhotoFilter,
         "date_joined",
     )
-    search_fields = ("email", "username", "first_name", "last_name", "phone")
+    search_fields = ("email", "first_name", "last_name", "phone")
     ordering = ("-date_joined",)
     date_hierarchy = "date_joined"
     list_per_page = 25
@@ -59,7 +57,6 @@ class UserAdmin(BaseUserAdmin):
             {
                 "fields": (
                     ("first_name", "last_name"),
-                    "username",
                     "role",
                     "phone",
                     "photo",
@@ -84,7 +81,7 @@ class UserAdmin(BaseUserAdmin):
         (
             "Informações do sistema",
             {
-                "fields": ("slug", "last_login", "date_joined", "created_at", "updated_at"),
+                "fields": ("last_login", "date_joined", "created_at", "updated_at"),
                 "classes": ("collapse",),
             },
         ),
@@ -98,7 +95,6 @@ class UserAdmin(BaseUserAdmin):
                 "classes": ("wide",),
                 "fields": (
                     "email",
-                    "username",
                     "first_name",
                     "last_name",
                     "role",
@@ -111,7 +107,6 @@ class UserAdmin(BaseUserAdmin):
 
     # ── Somente leitura ──────────────────────────────────────────────────────
     readonly_fields = (
-        "slug",
         "last_login",
         "date_joined",
         "created_at",

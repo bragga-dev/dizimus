@@ -8,7 +8,6 @@ from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db import models
 from django.utils import timezone
-from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from phonenumber_field.modelfields import PhoneNumberField
@@ -42,28 +41,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         CHURCH = ROLE_CHURCH, "Igreja"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
-    username = models.CharField(
-        _('username'), max_length=15, unique=True,
-        help_text=_(
-            'Obrigatório. 15 caracteres ou menos. '
-            'Letras, dígitos e @/./+/-/_ apenas.'
-        ),
-        validators=[validators.RegexValidator(
-            re.compile(r'^[\w.@+-]+$'),
-            _('Entre com um nome de usuário válido.'),
-            _('inválido'),
-        )],
-    )
-
-    role = models.CharField(
-        _("Tipo de usuário"), max_length=20,
-        choices=UserRole.choices, default=UserRole.MEMBER,
-    )
-
-    first_name = models.CharField(_('Primeiro nome'), max_length=100)
-    last_name  = models.CharField(_('Sobrenome'), max_length=100, blank=True)
-    email      = models.EmailField(_('E-mail'), max_length=255, unique=True)
+    role = models.CharField(_("Tipo de usuário"), max_length=20, choices=UserRole.choices, default=UserRole.MEMBER,)
+    email = models.EmailField(_('E-mail'), max_length=255, unique=True)
 
     # ── Foto ──────────────────────────────────────────────────────────────────
     # upload_to é callable → gera: photos/<uuid>/photo.jpg no MinIO.
@@ -83,7 +62,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text=_('Número de telefone no formato internacional, ex: +55 11 99999-8888.'),
     )
 
-    slug      = models.SlugField(max_length=255, unique=True, editable=False)
     is_staff  = models.BooleanField(_('Staff'), default=False)
     is_active = models.BooleanField(_('Ativo?'), default=False)
     is_trusty = models.BooleanField(_('Confiável?'), default=False)
@@ -93,7 +71,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     updated_at  = models.DateTimeField(_('Atualizado em'), auto_now=True)
 
     USERNAME_FIELD  = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+    REQUIRED_FIELDS = []  
 
     objects = UserManager()
 
@@ -102,12 +80,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = _('Usuários')
 
     # ── Helpers básicos ───────────────────────────────────────────────────────
-
-    def get_full_name(self):
-        return f'{self.first_name} {self.last_name}'.strip()
-
-    def get_short_name(self):
-        return self.first_name
 
     def email_user(self, subject, message, from_email=None):
         send_mail(subject, message, from_email, [self.email])
@@ -146,34 +118,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         number = parse(phone_str, "BR")
         return format_number(number, PhoneNumberFormat.E164)
 
-    def has_name_changed(self) -> bool:
-        if not self.pk or self._state.adding:
-            return False
-        old = User.objects.filter(pk=self.pk).only('first_name', 'last_name').first()
-        if not old:
-            return True
-        return old.first_name != self.first_name or old.last_name != self.last_name
-
-    # ── Validação e persistência ──────────────────────────────────────────────
-
-    def clean(self):
-        super().clean()
-        if self.role == self.UserRole.MEMBER and not self.last_name:
-            raise ValidationError({"last_name": _("Sobrenome é obrigatório para membros.")})
-
     def save(self, *args, **kwargs):
         self.full_clean()
-
-        # Slug: regenera ao criar ou ao trocar o nome
-        if not self.slug or self._state.adding or self.has_name_changed():
-            base_slug   = slugify(self.get_full_name()) or str(self.id)
-            unique_slug = base_slug
-            num = 1
-            while User.objects.filter(slug=unique_slug).exclude(pk=self.pk).exists():
-                unique_slug = f'{base_slug}-{num}'
-                num += 1
-            self.slug = unique_slug
-
         if not self.photo:
             self.photo = DEFAULT_USER_PHOTO
 
